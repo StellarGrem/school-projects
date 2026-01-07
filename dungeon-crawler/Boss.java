@@ -1,5 +1,4 @@
 /* Boss
- * Samuel
  * Controls what the boss does when the player reaches floor 5.
  *  - Its attacks, hp, the damage done to the player and itself
  *  - Attacks: bullet-hell, targetted meteor, 3 lava-boxes
@@ -154,4 +153,5 @@ class Boss extends Enemy{
    }
  }
  
+
 }
