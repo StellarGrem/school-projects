@@ -1,0 +1,58 @@
+import java.awt.*;
+import java.util.ArrayList;
+
+class Platform{
+ private int x, y, vx, len;
+ private int left, right;
+ private String power;
+ 
+ public Platform(int l, int r){
+   reset();
+   left = l;
+   right = r;
+ }
+ 
+ public void powerup(String pwr){
+   power = pwr;
+   if(pwr.equals("extend")){
+     len = 150;
+   }
+   else{
+     len = 100;
+   }
+   System.out.println(power);
+ }
+ public String getPower(){
+   return power;
+ }
+ public void reset(){
+   x = 287;
+   y = 550;
+   len = 100;
+   vx = 10;
+//   System.out.println(powers);
+   power = "";
+//   System.out.println(powers);
+ }
+ public int[] getStats(){
+   int[] stats = {x,y,len};
+   return stats;
+ }
+ public Rectangle getRect(){
+   return new Rectangle (x,y,len,20);
+ }
+ 
+ public void move(boolean keys[]){
+  if(x<625-len && keys[right]){
+    x += vx;
+  }
+  if(x>25 && keys[left]){
+    x -= vx;
+  }
+ }
+ 
+ public void draw(Graphics g){
+  g.setColor(Color.RED);
+  g.fillRect(x,y,len,20);
+ }
+}

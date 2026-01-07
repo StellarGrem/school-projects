@@ -1,0 +1,121 @@
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.*;
+import java.util.ArrayList;
+
+class ArkanoidPanel extends JPanel implements KeyListener, ActionListener, MouseListener{
+ public static final int INTRO=0, GAME=1, END=2;
+ private int screen = INTRO;
+ 
+ private boolean []keys;
+ Timer timer;
+ Image back;
+ private Ball ball; 
+ private Platform plat;
+ private Block block;
+ private PowerUp pwrup;
+ private int score, round;
+ private Font fontComic;
+ 
+ public ArkanoidPanel(){
+  back = new ImageIcon("sprites/arkanoidbgblue.png").getImage();
+  keys = new boolean[KeyEvent.KEY_LAST+1];
+  ball = new Ball(this);
+  plat = new Platform(KeyEvent.VK_LEFT, KeyEvent.VK_RIGHT);
+  block = new Block(this);
+  pwrup = new PowerUp(this);
+  score = 0;
+  fontComic = new Font("Comic Sans MS", Font.PLAIN,32);
+  
+  
+  setPreferredSize(new Dimension(800, 600));
+  setFocusable(true);
+  requestFocus();
+  addKeyListener(this);
+  addMouseListener(this);
+  timer = new Timer(20, this);
+  timer.start();
+ }
+
+ public void move(){
+  if(screen == INTRO){
+   
+  }
+  else if(screen == GAME){
+   ball.move(plat, block, pwrup, keys);
+   plat.move(keys);
+   pwrup.move(plat,block);
+  }
+
+ }
+ public void addScore(int n){
+     score += n;
+ }
+ public void addRound(){
+   round++;
+ }
+ @Override
+ public void actionPerformed(ActionEvent e){
+  move(); 
+  repaint(); 
+
+ }
+ 
+ @Override
+ public void keyReleased(KeyEvent ke){
+  int key = ke.getKeyCode();
+  keys[key] = false;
+ } 
+ 
+ @Override
+ public void keyPressed(KeyEvent ke){
+  int key = ke.getKeyCode();
+  keys[key] = true;
+ }
+ 
+ @Override
+ public void keyTyped(KeyEvent ke){}
+ @Override
+ public void mouseClicked(MouseEvent e){}
+
+ @Override
+ public void mouseEntered(MouseEvent e){}
+
+ @Override
+ public void mouseExited(MouseEvent e){}
+
+ @Override
+ public void mousePressed(MouseEvent e){
+  if(screen == INTRO){
+   screen = GAME;
+  } 
+ }
+
+ @Override
+ public void mouseReleased(MouseEvent e){}
+
+ @Override
+ public void paint(Graphics g){
+  if(screen == INTRO){
+   g.setColor(new Color(137,196,234));
+   g.fillRect(0,0,getWidth(), getHeight());     
+  }
+  else if(screen == GAME){
+    g.setColor(Color.BLACK);
+    g.fillRect(0,0,getWidth(), getHeight());
+    g.drawImage(back, 0, 0, null);
+    ball.draw(g);
+    plat.draw(g);
+    block.draw(g);
+    pwrup.draw(g);
+    
+    g.setColor(Color.RED);
+    g.setFont(fontComic);
+    g.drawString("SCORE", 660,90);
+    g.drawString("ROUND", 660,530);
+    g.setColor(Color.WHITE);
+    g.drawString(""+score, 660,130);
+    g.drawString(""+round, 660,570);
+  }
+ }
+}
