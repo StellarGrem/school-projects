@@ -1,0 +1,568 @@
+/* Player
+ * Character that the user controls:
+ *  - attacks
+ *  - movement
+ *  - inventory
+ */
+
+import java.awt.*;
+import java.util.ArrayList;
+import javax.swing.*;
+// packages for BufferedImages
+import java.awt.image.*;
+import java.awt.geom.*;
+import java.io.File;
+import java.io.IOException;
+import javax.imageio.*;
+//
+
+class Player{
+ public static final int ROLL=0, ATTACK=1, ATTACK2=2, BLOCK=3;
+ public static final int HELM=0,CHEST=1,LEG=2,LH=3,RH=4;
+ private int delay,frame;
+ private int x, y;
+ private int up, down, left, right, space;
+ 
+ private int[] cd; // cooldowns
+ private double ax,ay,dmg,ang;
+ private double hp, maxhp;
+ private Boolean atk = false,move = false; // states
+ 
+ private Boolean openInventory = false;
+ private Boolean newGear = false;
+ private ArrayList<Gear> inventory = new ArrayList<Gear>();
+ private Gear[] equipped = new Gear[5];
+ private Rectangle invButton = new Rectangle(760,45,30,30);
+ private Image invpic = new ImageIcon("sprites/inventory.png").getImage();
+ private BufferedImage[] idle,run,roll,swing,rapier;
+ private Room area;
+ 
+ public Player(int u, int d, int l, int r, int s){
+   cd = new int[4];
+   ax = 400;
+   ay = 300;
+   x = 400;
+   y = 300;
+   up = u;
+   down = d;
+   left = l;
+   right = r;
+   space = s;
+   // Preset Gear
+   equipped[HELM] = new Gear("helm","newbie");
+   equipped[CHEST] = new Gear("chest","newbie");
+   equipped[LEG] = new Gear("legs","newbie");
+   equipped[LH] = new Gear("sword","newbie");
+   equipped[RH] = new Gear("shield","newbie");
+   //
+   changeMaxhp();
+   hp = maxhp;
+   loadSprite();
+ }
+
+ public Rectangle getHitbox(){return new Rectangle(x-10,y-10,20,20);}
+ public int getX(){return x;}
+ public void setX(int v){x = v;}
+ public int getY(){return y;}
+ public void setY(int v){y = v;}
+ public double getHp(){return hp;}
+ public void setHp(double v){hp = v;}
+ public double getMaxhp(){return maxhp;}
+ public Room getRoom(){return area;}
+ 
+ private void loadSprite(){ // loads all the necessary sprites for player
+   idle = new BufferedImage[5]; // idle sprites
+   run = new BufferedImage[6]; // running sprites
+   roll = new BufferedImage[9]; // roll sprites
+   swing = new BufferedImage[12]; // swinging sprites
+   rapier = new BufferedImage[8]; // stab sprites for rapier weapons
+   for(int i=0;i<12;i++){
+     try{
+       if(i < idle.length){idle[i] = ImageIO.read(new File("sprites/player/idle"+i+".png"));}
+       if(i < run.length){run[i] = ImageIO.read(new File("sprites/player/run"+i+".png"));}
+       if(i < roll.length){roll[i] = ImageIO.read(new File("sprites/player/roll"+i+".png"));}
+       if(i < swing.length){swing[i] = ImageIO.read(new File("sprites/player/swing"+i+".png"));}
+       if(i < rapier.length){rapier[i] = ImageIO.read(new File("sprites/player/rapier"+i+".png"));}
+     }
+     catch (IOException e) {
+       System.out.println(e);
+     }
+   }
+ }
+ 
+ public void inventory(int mx, int my, int mb){
+   // Opening/Closing inventory
+   if(openInventory == true && invButton.contains(mx,my)){ // close inventory
+     openInventory = false;
+   }
+   else if(openInventory == false && invButton.contains(mx,my)){ // open inventory
+     openInventory = true;
+     newGear = false;
+   }
+   // Switch gear
+   if(openInventory == true){
+     for(Gear g: inventory){
+       if(g.getRect().contains(mx,my)){
+         Gear tmp = g;
+         if(g.getGear().equals("helm")){
+           inventory.set(inventory.indexOf(tmp),equipped[HELM]);
+           equipped[HELM] = tmp;
+           changeMaxhp();
+         }
+         else if(g.getGear().equals("chest")){
+           inventory.set(inventory.indexOf(tmp),equipped[CHEST]);
+           equipped[CHEST] = tmp;
+           changeMaxhp();
+         }
+         else if(g.getGear().equals("legs")){
+           inventory.set(inventory.indexOf(tmp),equipped[LEG]);
+           equipped[LEG] = tmp;
+           changeMaxhp();
+         }
+         else if(g.getGear().equals("sword") || g.getGear().equals("axe") || g.getGear().equals("rapier") || g.getGear().equals("shield")){
+           if(mb==1){ // switch gear in left hand
+             inventory.set(inventory.indexOf(tmp),equipped[LH]);
+             equipped[LH] = tmp;
+           }
+           else if(mb==3){ // switch gear in right hand
+             inventory.set(inventory.indexOf(tmp),equipped[RH]);
+             equipped[RH] = tmp;
+           }
+           changeMaxhp(); // if shield is equipped
+         }
+       }
+     }
+   }
+ }
+ 
+ public void changeMaxhp(){ // change maxhp based on equipment and their bonus
+   maxhp = 50+equipped[HELM].getBonus() + 100+equipped[CHEST].getBonus() + 30+equipped[LEG].getBonus();
+   if(equipped[LH].getGear().equals("shield")){
+     maxhp += 5+equipped[LH].getBonus();
+   }
+   else if(equipped[RH].getGear().equals("shield")){
+     maxhp += 5+equipped[RH].getBonus();
+   }
+ }
+ 
+ public void hit(int damage){
+   if(cd[BLOCK] == 0){
+     hp -= damage;
+   }
+   else{
+     System.out.println("Blocked");
+   }
+ }
+ 
+ public void cooldown(){ // reduces all cooldowns by 1 ms
+   if(cd[ROLL] != 0){
+     cd[ROLL] -= 1;
+   }
+   if(cd[ATTACK] != 0){ // LH
+     cd[ATTACK] -= 1;
+   }
+   if(cd[ATTACK2] != 0){ // RH
+     cd[ATTACK2] -= 1;
+   }
+   if(cd[BLOCK] != 0){
+     cd[BLOCK] -= 1;
+   }
+ }
+ 
+ public void attack(int mx, int my, int mb){
+   // just some time it calculated for determine which cd was accurate
+   /* ~1600 ms - 1700 ms = 100
+    * ~90 ms = 1
+    * ~200 ms - 300 ms = 10
+    * ~600 ms -700 ms = 30
+    * ~800 ms - 900 ms = 50
+    * ~900 ms - 1000 ms = 52
+    * ~1600 ms = 90
+    * ~1100 ms = 60
+    * ~1400 - 1500 ms = 80
+    */
+   atk = true;
+   double rad = Math.atan2(my-y,mx-x);
+//   System.out.println(rad);
+   if(mb == 1 && cd[ATTACK] == 0){ // LMB attack
+     if(equipped[LH].getGear().equals("sword")){
+       cd[ATTACK] = 52;
+     }
+     else if(equipped[LH].getGear().equals("axe")){
+       cd[ATTACK] = 70;
+     }
+     else if(equipped[LH].getGear().equals("rapier")){
+       cd[ATTACK] = 20;
+     }
+     else if(equipped[LH].getGear().equals("shield")){
+       cd[ATTACK] = 25;
+       cd[BLOCK] = 15;
+     }
+     ax = x + 20*Math.cos(rad);
+     ay = y + 20*Math.sin(rad);
+   }
+   if(mb == 3 && cd[ATTACK2] == 0){ // RMB attack
+     if(equipped[RH].getGear().equals("sword")){
+      cd[ATTACK2] = 52;
+    }
+     else if(equipped[RH].getGear().equals("axe")){
+       cd[ATTACK2] = 70;
+     }
+     else if(equipped[RH].getGear().equals("rapier")){
+       cd[ATTACK2] = 20;
+     }
+     else if(equipped[RH].getGear().equals("shield")){
+       cd[ATTACK2] = 25;
+       cd[BLOCK] = 15;
+     }
+     ax = x + 20*Math.cos(rad);
+     ay = y + 20*Math.sin(rad);
+   }
+   
+   try{
+     for(Enemy e: new ArrayList<Enemy>(area.getEnemies())){ // hurts enemies within attack
+       if(e.getRect().intersects(new Rectangle((int)ax-5,(int)ay-5,10,10))){
+         if(mb == 1){
+           System.out.println(10+equipped[LH].getBonus());
+           e.hit(10+equipped[LH].getBonus());
+         }
+         else if(mb == 3){
+           System.out.println(10+equipped[RH].getBonus());
+           e.hit(10+equipped[RH].getBonus());
+         }
+       }
+     }
+   }
+   catch(NullPointerException ex){
+     System.out.println(ex);
+   }
+ }
+ 
+ public void move(boolean keys[], Room room, Point mouse){
+   ang = Math.atan2(mouse.y-y,mouse.x-x);
+   cooldown();
+   if(room.getFloor() == 5){y = 350;} // Shifts player's y when in boss room
+   if(area != null){
+     area.openRoom(getHitbox(),room.getRooms());
+     area.moveEnemy(this);
+     // Interact with chest
+     if(area.getChest() != null && getHitbox().intersects(area.getChest().getRect())){
+       if(area.getChest().getOpen() == false){
+         inventory.add(area.getChest().loottable());
+         newGear = true;
+       }
+     }
+   }
+   // Gets the room the player is in
+   if(area == null || !area.getRect().contains(x,y) || !room.getRooms().contains(area)){
+     for(Room r: room.getRooms()){
+       if(r.getOpen() == true && r.getRect().contains(x,y)){
+         area = r;
+         break;
+       }
+     }
+   }
+  // Movement system
+  if(keys[left]){
+    if(keys[space] && cd[ROLL] == 0){
+       // if room to the left is open
+      if(area.getconnectedRooms()[1] != null && area.getconnectedRooms()[1].getOpen() == true){
+        // if player is in the door range and not the wall
+        if(x-50 <= area.getX()+20 && y < area.getY()+area.getRect().getHeight()/2+40 && y > area.getY()+area.getRect().getHeight()/2-40){
+          cd[ROLL] = 100;
+          for(Room r: room.getRooms()){
+            r.move("left",50);
+          }
+        }
+      }
+      // if player does not hit the left wall
+      if(area.getX()+20 <= x-50){
+        cd[ROLL] = 100;
+        for(Room r: room.getRooms()){
+          r.move("left",50);
+        }
+      }
+    }
+    else{
+      // if room to the left is open
+      if(area.getconnectedRooms()[1] != null && area.getconnectedRooms()[1].getOpen() == true){
+        // if player is in the door range and not the wall
+        if(x-5 <= area.getX()+20 && y < area.getY()+area.getRect().getHeight()/2+40 && y > area.getY()+area.getRect().getHeight()/2-40){
+          for(Room r: room.getRooms()){
+            r.move("left",5);
+          }
+        }
+      }
+      // if player does not hit the left wall
+      if(area.getX()+20 <= x-5){
+        for(Room r: room.getRooms()){
+          r.move("left",5);
+        }
+      }
+    }
+    move = true; // indicates the player is moving
+  }
+  if(keys[right]){
+    if(keys[space] && cd[ROLL] == 0){
+      // if room to the right is open
+      if(area.getconnectedRooms()[2] != null && area.getconnectedRooms()[2].getOpen() == true){
+        // if player is in the door range and not the wall
+        if(x+50 >= area.getX()+area.getRect().getWidth()-20 && y < area.getY()+area.getRect().getHeight()/2+40 && y > area.getY()+area.getRect().getHeight()/2-40){
+          cd[ROLL] = 100;
+          for(Room r: room.getRooms()){
+            r.move("right",-50);
+          }
+        }
+      }
+      // if player does not hit the right wall
+      if(area.getX()+area.getRect().getWidth()-20 >= x+50){
+        cd[ROLL] = 100;
+        for(Room r: room.getRooms()){
+          r.move("right",-50);
+        }
+      }
+    }
+    else{
+      if(area.getconnectedRooms()[2] != null && area.getconnectedRooms()[2].getOpen() == true){
+        if(x+5 >= area.getX()+area.getRect().getWidth()-20 && y < area.getY()+area.getRect().getHeight()/2+40 && y > area.getY()+area.getRect().getHeight()/2-40){
+          for(Room r: room.getRooms()){
+            r.move("right",-5);
+          }
+        }
+      }
+      
+      if(area.getX()+area.getRect().getWidth()-20 >= x+5){
+        for(Room r: room.getRooms()){
+          r.move("right",-5);
+        }
+      }
+    }
+    move = true;
+  }
+  if(keys[up]){
+    if(keys[space] && cd[ROLL] == 0){
+      // if room to the above is open
+      if(area.getconnectedRooms()[0] != null && area.getconnectedRooms()[0].getOpen() == true){
+        // if player is in the door range and not the wall
+        if(y-50 <= area.getY() && x < area.getX()+area.getRect().getWidth()/2+40 && x > area.getX()+area.getRect().getHeight()/2-40){
+          cd[ROLL] = 100;
+          for(Room r: room.getRooms()){
+            r.move("up",50);
+          }
+        }
+      }
+      // if player does not hit the top wall
+      if(area.getY() <= y-50){
+        cd[ROLL] = 100;
+        for(Room r: room.getRooms()){
+          r.move("up",50);
+        }
+      }
+    }
+    else{
+      if(area.getconnectedRooms()[0] != null && area.getconnectedRooms()[0].getOpen() == true){
+        if(y-5 <= area.getY() && x < area.getX()+area.getRect().getWidth()/2+40 && x > area.getX()+area.getRect().getHeight()/2-40){
+          for(Room r: room.getRooms()){
+            r.move("up",5);
+          }
+        }
+      }
+      if(area.getY() <= y-5){
+        for(Room r: room.getRooms()){
+          r.move("up",5);
+        }
+      }
+    }
+    move = true;
+  }
+  if(keys[down]){
+    if(keys[space] && cd[ROLL] == 0){
+      // if room to the below is open
+      if(area.getconnectedRooms()[3] != null && area.getconnectedRooms()[3].getOpen() == true){
+        // if player is in the door range and not the wall
+        if(y+50 >= area.getY()+area.getRect().getHeight() && x < area.getX()+area.getRect().getWidth()/2+40 && x > area.getX()+area.getRect().getHeight()/2-40){
+          cd[ROLL] = 100;
+          for(Room r: room.getRooms()){
+            r.move("down",-50);
+          }
+        }
+      }
+      // if player does not hit the bottom wall
+      if(area.getY()+area.getRect().getHeight() >= y+50){
+        cd[ROLL] = 100;
+        for(Room r: room.getRooms()){
+          r.move("down",-50);
+        }
+      }
+    }
+    else{
+      if(area.getconnectedRooms()[3] != null && area.getconnectedRooms()[3].getOpen() == true){
+        if(y+5 >= area.getY()+area.getRect().getHeight() && x < area.getX()+area.getRect().getWidth()/2+40 && x > area.getX()+area.getRect().getHeight()/2-40){
+          for(Room r: room.getRooms()){
+            r.move("down",-5);
+          }
+        }
+      }
+      if(area.getY()+area.getRect().getHeight() >= y+5){
+        for(Room r: room.getRooms()){
+          r.move("down",-5);
+        }
+      }
+    }
+    move = true;
+  }
+  // no keys pressed, player not moving
+  if(keys[up]==false && keys[left]==false && keys[right]==false && keys[down]==false){move = false;}
+ }
+ 
+ public void draw(Graphics g){
+   // Guy
+   delay += 1;
+   // Attack Sprites
+   if(cd[ATTACK] > 0 && !equipped[LH].getGear().equals("shield")){
+     if(equipped[LH].getGear().equals("rapier")){
+       int wait = 2;
+       if(delay % wait == 0){
+         frame = (frame + 1) % rapier.length;
+       }
+       try{
+         g.drawImage(rapier[frame],x-rapier[frame].getWidth()/2,y-rapier[frame].getHeight()/2,null);
+       }
+       catch(ArrayIndexOutOfBoundsException ex){
+         System.out.println(ex);
+       }
+     }
+     else{
+       int wait = 52/12;
+       if(delay % wait == 0){
+         frame = (frame + 1) % swing.length;
+       }
+       try{
+         g.drawImage(swing[frame],x-swing[frame].getWidth()/2,y-swing[frame].getHeight()/2,null);
+       }
+       catch(ArrayIndexOutOfBoundsException ex){
+         System.out.println(ex);
+       }
+     }
+   }
+   else if(cd[ATTACK2] > 0 && !equipped[RH].getGear().equals("shield")){
+     if(equipped[RH].getGear().equals("rapier")){
+       int wait = 3;
+       if(delay % wait == 0){
+         frame = (frame + 1) % rapier.length;
+       }
+       try{
+         g.drawImage(rapier[frame],x-rapier[frame].getWidth()/2,y-rapier[frame].getHeight()/2,null);
+       }
+       catch(ArrayIndexOutOfBoundsException ex){
+         System.out.println(ex);
+       }
+     }
+     else{
+       int wait = 52/12;
+       if(delay % wait == 0){
+         frame = (frame + 1) % swing.length;
+       }
+       try{
+         g.drawImage(swing[frame],x-swing[frame].getWidth()/2,y-swing[frame].getHeight()/2,null);
+       }
+       catch(ArrayIndexOutOfBoundsException ex){
+         System.out.println(ex);
+       }
+     }
+   }
+   else{
+     // Roll sprite
+     if(cd[ROLL] > 0){
+       int wait = 100/10;
+       if(delay % wait == 0){
+         frame = (frame + 1) % roll.length;
+       }
+       try{
+         g.drawImage(roll[frame],x-roll[frame].getWidth()/2,y-roll[frame].getHeight()/2,null);
+       }
+       catch(ArrayIndexOutOfBoundsException ex){
+         System.out.println(ex);
+       }
+     }
+     // Move sprite
+     else if(move == true){
+       int wait = 5;
+       if(delay % wait == 0){
+         frame = (frame + 1) % run.length;
+       }
+       try{
+         g.drawImage(run[frame],x-run[frame].getWidth()/2,y-run[frame].getHeight()/2,null);
+       }
+       catch(ArrayIndexOutOfBoundsException ex){
+         System.out.println(ex);
+       }
+     }
+     // Idle sprite
+     else if(move == false){
+       int wait = 5;
+       if(delay % wait == 0){
+         frame = (frame + 1) % idle.length;
+       }
+       try{
+         g.drawImage(idle[frame],x-idle[frame].getWidth()/2,y-idle[frame].getHeight()/2,null);
+       }
+       catch(ArrayIndexOutOfBoundsException ex){
+         System.out.println(ex);
+       }
+     }
+   }
+//   g.setColor(Color.RED);
+//   g.drawRect(x-10,y-10,20,20);
+//   g.drawLine(x,y,(int)ax,(int)ay);
+//   g.drawOval((int)ax-15,(int)ay-15,30,30);
+   // HP bar
+   double per = getHp()/getMaxhp();
+   g.setColor(Color.RED);
+   g.fillRect(590,10,200,25);
+   g.setColor(Color.GREEN);
+   if(per > 0){
+     g.fillRect(590,10,(int)(200*per),25);
+   }
+   else{
+     g.fillRect(590,10,0,25);
+   }
+   // Inventory Button
+   g.setColor(new Color(255, 253, 143));
+   g.fillRect((int)invButton.getX(),(int)invButton.getY(),(int)invButton.getWidth(),(int)invButton.getHeight());
+   g.drawImage(invpic,(int)invButton.getX()+2,(int)invButton.getY(),null);
+   if(newGear == true){
+     g.setColor(Color.RED);
+     g.fillOval((int)(invButton.getX()+invButton.getWidth())-5,(int)(invButton.getY()+invButton.getHeight())-5,10,10);
+   }
+   // Inventory GUI
+   if(openInventory == true){
+     g.setColor(new Color(255, 253, 143));
+     g.fillRect(100,150,600,260);
+//    g.drawLine(340,150,340,410);
+     // Equipped side of GUI
+     g.setColor(Color.GRAY);
+     g.fillRect(190,170,60,60); // Helm
+     g.fillRect(190,250,60,60); // Chest
+     g.fillRect(190,330,60,60); // Leg
+     g.fillRect(120,250,60,60); // RH
+     g.fillRect(260,250,60,60); // LH
+     
+     equipped[HELM].draw(g,190+15,170+15); // Helm graphic
+     equipped[CHEST].draw(g,190+15,250+15); // Chest graphic
+     equipped[LEG].draw(g,190+15,330+15); // Leg graphic
+     equipped[RH].draw(g,120+15,250+15); // RH graphic
+     equipped[LH].draw(g,260+15,250+15); // LH graphic
+     // Inventory side of GUI
+     for(int i=0;i<35;i++){
+       g.setColor(Color.GRAY);
+       g.fillRect(350+50*(i%7),160+50*(i/7),40,40);
+     }
+     for(int i=1;i<inventory.size()+1;i++){
+       inventory.get(i-1).draw(g,350+50*((i-1)%7)+5,160+50*((i-1)/7)+5);
+     }
+   }
+ }
+ 
+
+}

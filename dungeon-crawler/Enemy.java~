@@ -1,0 +1,65 @@
+import java.awt.*;
+import java.util.ArrayList;
+
+class Enemy{
+ protected int x, y;
+ protected double hp;
+ protected int attackCD;
+ protected String type;
+ protected Player user;
+ 
+ // Mage exclusive
+ protected ArrayList<Projectile> spellList;
+ // Swordsman exclusive
+ protected int ax,ay; // also Boss exclusive
+ // Boss exclusive
+ protected ArrayList<Rectangle> unsafe;
+ 
+ public Enemy(int xx, int yy, int h, String typ){
+  x = xx;
+  y = yy;
+  hp = h;
+  type = typ;
+ }
+ 
+ // These are placeholders so that subclasses can implement
+ public Rectangle getRect(){
+   return new Rectangle((int)x,(int)y,20,20);
+ }
+ 
+ public void loadSprites(){
+ 
+ }
+ 
+ public void hit(int damage){
+ 
+ }
+ 
+ public void attack(){
+   
+ }
+ 
+ public void move(ArrayList<Enemy> list,Player user){
+
+ }
+ 
+ public void draw(Graphics g){
+  
+ }
+ 
+ // Swordsman Exclusive
+ 
+ 
+ // Mage Exclusive
+ public ArrayList<Projectile> getSList(){
+   return spellList;
+ }
+ 
+ // Boss Exclusive
+ public void setAy(int v){ay = v;}
+ public int getAy(){return ay;}
+ public void setAx(int v){ax = v;}
+ public int getAx(){return ax;}
+ public ArrayList<Rectangle> getUnsafe(){return unsafe;}
+ 
+}
