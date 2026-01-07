@@ -1,5 +1,4 @@
 /* Player
- * Samuel Huang
  * Character that the user controls:
  *  - attacks
  *  - movement
@@ -565,4 +564,5 @@ class Player{
    }
  }
  
+
 }
