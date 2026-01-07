@@ -1,5 +1,4 @@
 /* Projectile
- * Samuel Huang
  * Class for the projectiles that boss and mage creates
  */
 
@@ -31,4 +30,5 @@ class Projectile{
    g.setColor(Color.RED);
    g.fillOval((int)x,(int)y,10,10);
  }
+
 }
