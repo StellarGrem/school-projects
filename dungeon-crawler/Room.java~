@@ -1,0 +1,434 @@
+import java.awt.*;
+import java.util.ArrayList;
+import javax.swing.*;
+
+class Room{
+  public static final int TOP=1,RIGHT=2,BOTTOM=4,LEFT=8;
+  public static final int WIDTH=400,HEIGHT=400;
+  private Image rpics; // room pic
+  private Image[] wpics; // wall pic
+  private Image[] dpics; // door pic
+  private int floor = 1;
+  private Chest chest;
+  private Room[] connectedRooms = new Room[4];
+  private ArrayList<Room> rooms = new ArrayList<Room>();
+  private ArrayList<Room> newRooms = new ArrayList<Room>();
+  private int x, y, side, doors;
+  private Boolean open = false;
+  
+//  private Boolean enemySpawn = true;
+  private ArrayList<Enemy> enemies = new ArrayList<Enemy>();
+  
+  public Room(){
+    sprites();
+    reset();
+  }
+/* 3 doors  2 doors       one door         no door
+ * X    | X  | X  |    |  X  |     |     |     |
+ *   X  |    |  X |  X |     |   X |     |     |
+ * X    | X  |    | X  |     |     | X   |     |
+ */
+  
+  private Room(int xx, int yy, int d, int s){
+    x = xx;
+    y = yy;
+    side = s;
+    doors = doorLocation(d,side);
+    spawnChest(xx,yy);
+    for(int i=0;i<5;i++){
+      if(i % 2==0){
+        enemies.add(new Swordsman(Util.randint(xx+50,xx+WIDTH-50),Util.randint(yy+50,yy+HEIGHT-50)));
+      }
+      else{
+        enemies.add(new Mage(Util.randint(xx+50,xx+WIDTH-50),Util.randint(yy+50,yy+HEIGHT-50)));
+      }
+    }
+  }
+  
+  public int getDoors(){return doors;}
+  public int getFloor(){return floor;}
+  public void setFloor(int v){floor = v;}
+  public Room[] getconnectedRooms(){return connectedRooms;}
+  public ArrayList<Room> getRooms(){return rooms;}
+  public Chest getChest(){return chest;}
+  
+//  public void setEnemySpawn(Boolean state){enemySpawn = state;}
+  public ArrayList<Enemy> getEnemies(){return enemies;}
+  public void addEnemies(Enemy e){enemies.add(e);}
+  
+  public Rectangle getRect(){
+    if(enemies.size() > 0 && enemies.get(0).type.equals("boss")){
+      return new Rectangle(x,y,800,600);
+    }
+    else{
+      return new Rectangle(x,y,WIDTH,HEIGHT);
+    }
+  }
+  
+  public Boolean getOpen(){return open;}
+  public void setOpen(Boolean state){open = state;}
+  
+  public int getX(){return x;}
+  public void setX(int v){x = v;}
+  
+  public int getY(){return y;}
+  public void setY(int v){y = v;}
+  
+  public void newFloor(){
+    Boolean empty = true;
+    for(Room r:rooms){
+      if(r.enemies.size() != 0){
+        empty = false;
+      }
+    }
+    if(empty == true){
+      floor++;
+      reset();
+    }
+  }
+  
+  private void sprites(){
+    // room pic
+    rpics = new ImageIcon("sprites/room/room.png").getImage();
+    // wall pic
+    wpics = new Image[7];
+    wpics[0] = new ImageIcon("sprites/room/left_wall.png").getImage();
+    wpics[1] = new ImageIcon("sprites/room/open_left.png").getImage();
+    wpics[2] = new ImageIcon("sprites/room/right_wall.png").getImage();
+    wpics[3] = new ImageIcon("sprites/room/open_right.png").getImage();
+    wpics[4] = new ImageIcon("sprites/room/vertical_wall.png").getImage();
+    // door pic
+    dpics = new Image[6];
+    dpics[0] = new ImageIcon("sprites/room/closedoor_vertical.png").getImage();
+    dpics[1] = new ImageIcon("sprites/room/opendoor_vertical.png").getImage();
+    dpics[2] = new ImageIcon("sprites/room/closedoor_left.png").getImage();
+    dpics[3] = new ImageIcon("sprites/room/opendoor_left.png").getImage();
+    dpics[4] = new ImageIcon("sprites/room/closedoor_right.png").getImage();
+    dpics[5] = new ImageIcon("sprites/room/opendoor_right.png").getImage();
+  }
+  
+  public void reset(){
+    rooms.clear();
+    newRooms.clear();
+    if(floor < 5){
+      newRooms.add(new Room(200,100,doors(rooms.size() + newRooms.size()),0)); // starting area
+      while(newRooms.size() != 0){
+        otherRooms();
+      }
+      rooms.get(0).setOpen(true);
+//      rooms.get(0).setEnemySpawn(false);
+      rooms.get(0).enemies.clear();
+      connectedRooms();
+    }
+    else{
+      rooms.add(new Room(0,0,0,0)); // boss area
+      rooms.get(0).setOpen(true);
+      rooms.get(0).chest = null;;
+      rooms.get(0).enemies.clear();
+      rooms.get(0).enemies.add(new Boss(400,200));
+    }
+  }
+  
+  private void spawnChest(int xx,int yy){
+    int[] locx = {xx+40,xx+WIDTH-80};
+    int[] locy = {yy+20,yy+HEIGHT-80};
+    if(Util.randint(1,8) == 1){
+      chest = new Chest(locx[Util.randint(0,1)],locy[Util.randint(0,1)]);
+    }
+//    System.out.println(chest);
+//    if(chest != null){System.out.println(chest.getX() + ", " + chest.getY());}
+  }
+  
+  private int doors(int size){
+    if(size <= 3){
+      return Util.randint(1,3);
+    }
+    else if(size < 10){
+      return Util.randint(0,3);
+    }
+    else{
+      return 0;
+    }
+  }
+  
+  private int doorLocation(int dnum,int side){
+    int[] ds = {TOP,RIGHT,BOTTOM,LEFT};
+    ArrayList<Integer> val = new ArrayList<Integer>();
+    while(val.size()<dnum){
+      int pos = Util.randint(0,3);
+      if(!val.contains(ds[pos]) && ds[pos] != side){
+        val.add(ds[pos]);
+      }
+    }
+    if(dnum == 1){return val.get(0);}
+    else if(dnum == 2){return val.get(0) + val.get(1);}
+    else if(dnum == 3){return val.get(0) + val.get(1)+ val.get(2);}
+    else{return 0;}
+  }
+  
+  private void connectedRooms(){
+    for(Room r: rooms){
+      for(Room r2: rooms){
+        if(r.x == r2.x && r.y-80-HEIGHT == r2.y){ // top
+          r.connectedRooms[0] = r2;
+        }
+        if(r.x-WIDTH == r2.x && r.y == r2.y){ // left
+          r.connectedRooms[1] = r2;
+        }
+        if(r.x+WIDTH == r2.x && r.y == r2.y){ // right
+          r.connectedRooms[2] = r2;
+        }
+        if(r.x == r2.x && r.y+80+HEIGHT == r2.y){ // bottom
+          r.connectedRooms[3] = r2;
+        }
+      }
+    }
+  }
+  
+  private void otherRooms(){
+    for(Room r: new ArrayList<Room>(newRooms)){
+      if((r.doors & TOP) > 0){
+        Room tmp = new Room(r.x,r.y-80-HEIGHT,doors(rooms.size() + newRooms.size()),BOTTOM);
+        if(!newRooms.contains(tmp) && !rooms.contains(tmp)){
+          newRooms.add(tmp);
+          r.connectedRooms[0] = tmp;
+        }
+        else{r.doors -= TOP;}
+      }
+      if((r.doors & LEFT) > 0){
+        Room tmp = new Room(r.x-WIDTH,r.y,doors(rooms.size() + newRooms.size()),RIGHT);
+        if(!newRooms.contains(tmp) && !rooms.contains(tmp)){
+          newRooms.add(tmp);
+          r.connectedRooms[1] = tmp;
+        }
+        else{r.doors -= LEFT;}
+      }
+      if((r.doors & RIGHT) > 0){
+        Room tmp = new Room(r.x+WIDTH,r.y,doors(rooms.size() + newRooms.size()),LEFT);
+        if(!newRooms.contains(tmp) && !rooms.contains(tmp)){
+          newRooms.add(tmp);
+          r.connectedRooms[2] = tmp;
+        }
+        else{r.doors -= RIGHT;}
+      }
+      if((r.doors & BOTTOM) > 0){
+        Room tmp = new Room(r.x,r.y+80+HEIGHT,doors(rooms.size() + newRooms.size()),TOP);
+        if(!newRooms.contains(tmp) && !rooms.contains(tmp)){
+          newRooms.add(tmp);
+          r.connectedRooms[3] = tmp;
+        }
+        else{r.doors -= BOTTOM;}
+      }
+      rooms.add(r);
+      newRooms.remove(r);
+    }
+  }
+  
+  public void openRoom(Rectangle user, ArrayList<Room> rlist){
+    if((doors & TOP) > 0 && enemies.size() == 0 && new Rectangle(x+WIDTH/2-50,y-20,100,40).contains(user)){
+      for(Room r:rlist){
+        if(x == r.x && y-80-HEIGHT == r.y){
+          r.setOpen(true);
+          break;
+        }
+      }
+    }
+    if((doors & LEFT) > 0 && enemies.size() == 0 && new Rectangle(x+20,y+HEIGHT/2-50,40,100).contains(user)){
+      for(Room r:rlist){
+        if(x-WIDTH == r.x && y == r.y){
+          r.setOpen(true);
+          break;
+        }
+      }
+    }
+    if((doors & RIGHT) > 0 && enemies.size() == 0 && new Rectangle(x+WIDTH-40,y+HEIGHT/2-50,40,100).contains(user)){
+      for(Room r:rlist){
+        if(x+WIDTH == r.x && y == r.y){
+          r.setOpen(true);
+          break;
+        }
+      }
+    }
+    if((doors & BOTTOM) > 0 && enemies.size() == 0 && new Rectangle(x+WIDTH/2-50,y+HEIGHT-20,100,40).contains(user)){
+      for(Room r:rlist){
+        if(x == r.x && y+80+HEIGHT == r.y){
+          r.setOpen(true);
+          break;
+        }
+      }
+    }
+  }
+  
+  public void moveEnemy(Player user){
+//    System.out.println("Reached moveEnemy"); REACHED!
+    for(Enemy e: new ArrayList<Enemy>(enemies)){
+//      System.out.println(e); REACHED!
+      if(e.hp <= 0){enemies.remove(e);}
+      e.move(enemies,user);
+//      System.out.println(e); REACHED!
+    }
+  }
+  
+  public void move(String key,int offset){
+    if(key.equals("left") || key.equals("right")){
+      x += offset;
+      if(chest != null){
+        chest.setX(chest.getX() + offset);
+      }
+      for(Enemy e: new ArrayList<Enemy>(enemies)){
+        e.x += offset;
+        if(e.type.equals("mage")){
+          for(Projectile p: e.getSList()){
+            p.setX(p.getX() + offset);
+          }
+        }
+        if(e.type.equals("swordsman")){
+          e.setAx(e.getAx() + offset);
+        }
+        if(e.type.equals("boss")){
+          e.setAx(e.getAx() + offset);
+          for(Rectangle r: e.getUnsafe()){
+            r.x += offset;
+          }
+          for(Projectile p: e.getSList()){
+            p.setX(p.getX() + offset);
+          }
+        }
+      }
+    }
+    if(key.equals("up") || key.equals("down")){
+      y += offset;
+      if(chest != null){
+        chest.setY(chest.getY() + offset);
+      }
+      for(Enemy e: new ArrayList<Enemy>(enemies)){
+        e.y += offset;
+        if(e.type.equals("mage")){
+          for(Projectile p: e.getSList()){
+            p.setY(p.getY() + offset);
+          }
+        }
+        if(e.type.equals("swordsman")){
+          e.setAy(e.getAy() + offset);
+        }
+        if(e.type.equals("boss")){
+          e.setAy(e.getAy() + offset);
+          for(Rectangle r: e.getUnsafe()){
+            r.y += offset;
+          }
+          for(Projectile p: e.getSList()){
+            p.setY(p.getY() + offset);
+          }
+        }
+      }
+    }
+  }
+  
+  public void draw(Graphics g){
+    if(floor == 5){
+      Room r = rooms.get(0);
+//      g.setColor(new Color(111,222,111));
+//      g.fillRect(r.x,r.y,800,600);
+      Image bossrmpic = new ImageIcon("sprites//room/boss_room.png").getImage();
+      g.drawImage(bossrmpic, r.x, r.y-80, null);
+      g.setColor(Color.BLUE);
+      g.drawRect(r.x,r.y,800,600);
+      if(r.enemies.size() != 0){
+        r.enemies.get(0).draw(g);
+      }
+    }
+    else{
+      for(Room r: rooms){
+        if(r.getOpen() == true){
+          // Room generation
+          g.drawImage(rpics, r.x, r.y-80, null);
+//          g.setColor(new Color(111,222,111));
+//          g.fillRect(r.x,r.y,WIDTH,HEIGHT);
+//          
+          g.setColor(Color.BLUE);
+          g.drawRect(r.x,r.y,WIDTH,HEIGHT);
+          // Door generation
+          g.setColor(Color.MAGENTA);
+          // TOP
+          if((r.doors & TOP) > 0){
+            if(r.connectedRooms[0].getOpen()==true){
+              g.drawImage(dpics[1], r.x+160,r.y-80, null); // open
+            }
+            else{
+              g.drawImage(dpics[0], r.x+160, r.y-80, null); // closed
+            }
+            g.drawRect(r.x+WIDTH/2-50,r.y,100,20);
+          }
+          else if(r.connectedRooms[0] == null || !((r.connectedRooms[0].getDoors() & BOTTOM) > 0)){
+            g.drawImage(wpics[4], r.x+160, r.y-80, null);
+          }
+          // LEFT
+          if((r.doors & LEFT) > 0){
+            if(r.connectedRooms[1].getOpen()==true){
+              g.drawImage(dpics[3], r.x,r.y+160, null); // open
+            }
+            else{
+              g.drawImage(dpics[2], r.x, r.y+160, null); // closed
+            }
+            g.drawRect(r.x+20,r.y+HEIGHT/2-50,20,100);
+          }
+          else if(r.connectedRooms[1] != null && r.connectedRooms[1].getOpen()==true && (r.connectedRooms[1].getDoors() & RIGHT) > 0){
+            g.drawImage(wpics[1], r.x, r.y+160, null);
+          }
+          else{
+            g.drawImage(wpics[0], r.x, r.y+160, null);
+          }
+          // RIGHT
+          if((r.doors & RIGHT) > 0){
+            if(r.connectedRooms[2].getOpen()==true){
+              g.drawImage(dpics[5], r.x+WIDTH-80,r.y+160, null);
+            }
+            else{
+              g.drawImage(dpics[4], r.x+WIDTH-80,r.y+160, null);
+            }
+            g.drawRect(r.x+WIDTH-40,r.y+HEIGHT/2-50,20,100);
+          }
+          else if(r.connectedRooms[2] != null && r.connectedRooms[2].getOpen()==true && (r.connectedRooms[2].getDoors() & LEFT) > 0){
+            g.drawImage(wpics[3], r.x+WIDTH-80, r.y+160, null);
+          }
+          else{
+            g.drawImage(wpics[2], r.x+WIDTH-80, r.y+160, null);
+          }
+          // BOTTOM
+          if((r.doors & BOTTOM) > 0){
+            if(r.connectedRooms[3].getOpen()==true){
+              g.drawImage(dpics[1], r.x+160,r.y+HEIGHT, null);
+            }
+            else{
+              g.drawImage(dpics[0], r.x+160, r.y+HEIGHT, null);
+            }
+            g.drawRect(r.x+WIDTH/2-50,r.y+HEIGHT-20,100,20);
+          }
+          else if(r.connectedRooms[3] == null || !((r.connectedRooms[3].getDoors() & TOP) > 0)){
+            g.drawImage(wpics[4], r.x+160, r.y+HEIGHT, null);
+          }
+          // Enemy spawn
+          if(r.enemies.size() != 0){
+            for(Enemy e: r.enemies){
+              e.draw(g);
+            }
+          }
+          // Chest generation
+          g.setColor(Color.YELLOW);
+          if(r.chest != null){r.chest.draw(g);}
+        }
+      }
+    }
+  }
+  
+  @Override
+  public boolean equals(Object ob){
+    if(ob instanceof Room){
+      Room other = (Room)ob;
+      return x==other.x && y ==other.y;
+    }
+    else{
+      return false;
+    }
+  }
+}

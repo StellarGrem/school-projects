@@ -1,0 +1,90 @@
+import java.awt.*;
+import java.util.ArrayList;
+import javax.swing.*;
+
+class Mage extends Enemy{
+ private int delay=0,frame=0;
+ private Image[] mage_back;
+ private Image[] mage_front;
+ private Image[] mage_left;
+ private Image[] mage_right;
+ private ArrayList<Projectile> spellList = new ArrayList<Projectile>();
+ private static final double SPEED=3,WAIT=38;
+ 
+ public Mage(int x, int y){
+   super(x,y,75,"mage"); // This calls the constructor from Unit
+   attackCD=200;
+   loadSprites();
+ }
+ 
+ public void loadSprites(){
+   mage_back = new Image[6];
+   mage_front = new Image[6];
+   mage_left = new Image[6];
+   mage_right = new Image[6];
+   for(int i=0;i<6;i++){
+     mage_back[i] = new ImageIcon("sprites/mage/mage_back"+i+".png").getImage();
+     mage_front[i] = new ImageIcon("sprites/mage/mage_front"+i+".png").getImage();
+     mage_left[i] = new ImageIcon("sprites/mage/mage_left"+i+".png").getImage();
+     mage_right[i] = new ImageIcon("sprites/mage/mage_right"+i+".png").getImage();
+   }
+ }
+ 
+ public ArrayList<Projectile> getSList(){return spellList;}
+ public Rectangle getRect(){return new Rectangle((int)x-10,(int)y-10,20,20);}
+ public void hit(int damage){
+   hp -= damage;
+   System.out.println(hp);
+ }
+ 
+ public void draw(Graphics g){
+   for(Projectile p: spellList){
+     p.draw(g);
+   }
+   delay += 1;
+   if(delay % WAIT == 0){
+     frame = (frame + 1) % 6;
+   }
+//   g.setColor(Color.BLUE);
+//   g.fillOval(x-10,y-10,20,20);
+   if(Math.abs(400-x) < 30 && 300 < y){
+     g.drawImage(mage_back[frame], x-mage_back[frame].getWidth(null)/2, y-mage_back[frame].getHeight(null)/2, null);
+   }
+   else if(Math.abs(400-x) < 30 && 300 > y){
+     g.drawImage(mage_front[frame], x-mage_front[frame].getWidth(null)/2, y-mage_front[frame].getHeight(null)/2, null);
+   }
+   else if(400 < x){
+     g.drawImage(mage_left[frame], x-mage_left[frame].getWidth(null)/2, y-mage_left[frame].getHeight(null)/2, null);
+   }
+   else if(400 > x){
+     g.drawImage(mage_right[frame], x-mage_right[frame].getWidth(null)/2, y-mage_right[frame].getHeight(null)/2, null);
+   }
+ }
+ 
+ public void move(ArrayList<Enemy> list, Player user){
+   if(attackCD != 0){
+     attackCD--;
+   }
+   attack(user);
+ }
+ 
+ private void attack(Player user){
+   if(attackCD == 0){
+     double dist = Math.hypot(user.getX() - x, user.getY() - y);
+     double vx = SPEED * (user.getX() - x) / dist;
+     double vy = SPEED * (user.getY() - y) / dist;
+     spellList.add(new Projectile(x,y,vx,vy));
+     attackCD = 200;
+   }
+   for(Projectile p: new ArrayList<Projectile>(spellList)){
+     p.move();
+     if(p.getRect().intersects(user.getHitbox())){
+       spellList.remove(p);
+       user.hit(5);
+     }
+     if(!user.getRoom().getRect().contains((int)p.getX(),(int)p.getY())){
+       spellList.remove(p);
+     }
+   }
+ }
+}
