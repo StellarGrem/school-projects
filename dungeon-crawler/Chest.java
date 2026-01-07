@@ -1,5 +1,4 @@
 /* Chest
- * Samuel Huang
  * Chests will contain a loot table ranging from swords, axes, rapiers, shields, 
  * helmets, chest-plates, leggings with a naming-convention that will depict how good they are 
  * and how much bonus stat they will add.
@@ -171,4 +170,5 @@ class Gear{
       g.drawImage(sprite, x, y, null);
     }
   }
+
 }
