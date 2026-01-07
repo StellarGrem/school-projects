@@ -1,5 +1,4 @@
 /* Enemy
- * Samuel Huang
  * A superclass which boss, mage, and swordsman inherits from to
  * have "pre-made" methods and a constructor that they are access and extend from
  * without having to create one for each enemy within the game
@@ -69,4 +68,5 @@ class Enemy{
  public int getAx(){return ax;}
  public ArrayList<Rectangle> getUnsafe(){return unsafe;}
  
+
 }
