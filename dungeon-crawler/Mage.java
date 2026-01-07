@@ -1,5 +1,4 @@
 /* Mage
- * Samuel Huang
  * Enemy mage, located in every room, it will spawn in a random loaction within in the room
  * and not move. Every ~2 seconds, it will launch a spell towards the user
  */
@@ -99,4 +98,5 @@ class Mage extends Enemy{
      }
    }
  }
+
 }
