@@ -180,7 +180,6 @@ int components(int option){
     return 0;
 }
 
-
 int main(){
     while(1){
         switch (menu()){
