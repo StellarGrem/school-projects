@@ -26,7 +26,6 @@ void clearBuffer(){
     while(getchar() != '\n');
 }
 
-
 /*  could have used <math.h> version of round, but compiling doesn't work without "-lm" suffix, and since 
     not compiling risks not getting graded. I didn't want that, so I made my own instead.
 */
