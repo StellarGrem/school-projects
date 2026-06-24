@@ -1,5 +1,3 @@
-// Student ID: 110199280
-// Student Name: Samuel Huang
 // if math.h functions are undefined, compile with "-lm" suffix => gcc -Wall clc.c -lm
 
 #include <stdio.h>
