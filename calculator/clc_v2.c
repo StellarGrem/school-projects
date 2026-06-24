@@ -1,5 +1,3 @@
-// Student ID: 110199280
-// Student Name: Samuel Huang
 // if math.h functions are undefined, compile with "-lm" suffix => gcc -Wall clc_v2.c -lm
 // scanf method was found on https://www.w3schools.com/c/ref_stdio_scanf.php
 
