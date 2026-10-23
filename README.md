@@ -1,4 +1,23 @@
-# school-projects
-This repository is for storing school projects
+# School projects
+This repository is for storing school projects from both High School and University
 
-There may or may not be issues in certain projects. I don't have the time to playtest them, nor do I care. Some files are "old" and may be old versions. The main suspect being dungeon-crawler.
+There may or may not be issues in certain projects. Some files are "old" and may be old versions (those are the only files I currently have). The main suspect being dungeon-crawler.
+This is meant to be an archive of projects, and not something to expect "high-quality" or polished code.
+
+## High School
+In chronological order (not entirely sure when exactly, didn't upload them until now):
+# Paint
+
+
+# Vamp-survivor-clone
+
+
+# Arkanoid
+
+
+# Dungeon-crawler
+
+
+## University
+# Calculator
+Both versions (comp1400 and comp1410) are terminal-based calculators
