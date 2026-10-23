@@ -3,6 +3,8 @@ This repository is for storing school projects from both High School and Univers
 There may or may not be issues in certain projects. Some files are "old" and may be old versions (those are the only files I currently have). The main suspect being dungeon-crawler.
 This is meant to be an archive of projects, and not something to expect "high-quality" or polished code.
 
+Projects which stand out on their own, will get their own repos, however.
+
 # High School
 In chronological order (not entirely sure when exactly, didn't upload them until now):
 ## Paint
