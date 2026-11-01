@@ -8,16 +8,16 @@ Projects which stand out on their own, will get their own repos, however.
 # High School
 In chronological order (not entirely sure when exactly, didn't upload them until now):
 ## Paint
-
+Coded in Python, during Fall 2023
 
 ## Vamp-survivor-clone
-
+Coded in Python, during Fall/Winter 2023
 
 ## Arkanoid
-
+Coded in Java, during Winter/Spring 2024
 
 ## Dungeon-crawler
-
+Coded in Java during Spring 2024
 
 # University
 ## Calculator
