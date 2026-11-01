@@ -22,3 +22,5 @@ In chronological order (not entirely sure when exactly, didn't upload them until
 # University
 ## Calculator
 Both versions (comp1400 and comp1410) are terminal-based calculators
+comp1400 calculator is a grade calculator
+comp1410 is a arithmetic calculator
